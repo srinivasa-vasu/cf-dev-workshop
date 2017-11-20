@@ -1,0 +1,439 @@
+= Adding Service Registration and Discover with Spring Cloud
+
+In this lab we'll utilize Spring Boot and Spring Cloud to configure our application register itself with a service registry.  To do this we'll also need to provision an instance of a Eureka service registry using Pivotal Cloudfoundry Spring Cloud Services.  We'll also add a simple client application that looks up our application from the service registry and makes requests to our Cities service.
+
+== Update _Cloud-Native-Spring_ Boot Application to Register with Eureka
+
+. These features are added by adding _spring-cloud-services-starter-service-registry_ to the classpath. Open your Maven POM found here: */cloud-native-spring/pom.xml*. Add the following spring cloud services dependency:
++
+[source, xml]
+---------------------------------------------------------------------
+<dependency>
+  <groupId>io.pivotal.spring.cloud</groupId>
+	<artifactId>spring-cloud-services-starter-service-registry</artifactId>
+</dependency>
+---------------------------------------------------------------------
++
+
+. Thanks to Spring Cloud instructing your application to register with Eureka is as simple as adding a single annotation to your app! Add an @EnableDiscoveryClient annotation to the class _io.pivotal.cloudnativespring.CloudNativeSpringApplication_ (/cloud-native-spring/src/main/java/io/pivotal/cloudnativespring/CloudNativeSpringApplication.java):
++
+[source, java, numbered]
+---------------------------------------------------------------------
+@SpringBootApplication
+@EnableDiscoveryClient
+public class CloudNativeSpringApplication {
+---------------------------------------------------------------------
++
+Completed:
++
+[source,java,numbered]
+---------------------------------------------------------------------
+package io.pivotal.cloudnativespring;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
+
+@SpringBootApplication
+@EnableDiscoveryClient
+public class CloudNativeSpringApplication {
+
+	public static void main(String[] args) {
+		SpringApplication.run(CloudNativeSpringApplication.class, args);
+	}
+}
+---------------------------------------------------------------------
+
+== Create Spring Cloud Service Registry instance and deploy application
+
+. Now that our application is ready to read registry with an Eureka instance, we need to deploy one!  This can be done through cloudfoundry using the services marketplace.  Previously we did this through the Marketplace UI, but this time we will use the Cloudfoundry CLI (though we could also do this through the UI:
++
+[source,bash]
+---------------------------------------------------------------------
+$ cf marketplace
+---------------------------------------------------------------------
+This would list all the avilable services and then use the list to create the following service-registry. You may use the UI to do the same thing similar to how we created config server in the earlier exercise. This is an alternative way to do so using _CF CLI_.
++
+[source,bash]
+---------------------------------------------------------------------
+$ cf create-service p-service-registry standard service-registry
+---------------------------------------------------------------------
+
+. After you create the service registry instance navigate to your cloudfoundry space in the Apps Manager UI and refresh the page.  You should now see the newly created service registry intance.  Select the manage link to view the registry dashboard.  Note that there are not any registered applications at the moment:
++
+image::images/registry1.jpg[]
+
+. We will now bind our application to our service-registry within our Cloudfoundry deployment manifest.  Add thee additional reference to a the service to the bottom of */cloud-native-spring/manifest.yml* in the services list:
++
+[source, yml]
+---------------------------------------------------------------------
+  services:
+  - config-server
+  - service-registry
+---------------------------------------------------------------------
++
+Complete:
++
+[source, yml]
+---------------------------------------------------------------------
+---
+applications:
+- name: cloud-native-spring
+  host: cloud-native-spring-${random-word}
+  memory: 768M
+  instances: 1
+  path: ./target/cloud-native-spring-0.0.1-SNAPSHOT.jar
+  buildpack: java_buildpack_offline
+  timeout: 180
+  env:
+      TRUST_CERTS: api.sys.humourmind.com,api.sys.humourmind.com:443
+      JAVA_OPTS: -Djava.security.egd=file:///dev/urandom
+  services:
+  - config-server
+  - service-registry
+---------------------------------------------------------------------
+
+== Deploy and test application
+
+. Build the application
++
+[source,bash]
+---------------------------------------------------------------------
+$ mvn clean package
+---------------------------------------------------------------------
+
+. For the 2nd half of this lab we'll need to have this maven artifact in our local repository, so install it with the following command:
++
+[source,bash]
+---------------------------------------------------------------------
+$ mvn install
+---------------------------------------------------------------------
+
+. Push application into Cloud Foundry
++
+[source,bash]
+---------------------------------------------------------------------
+$ cf push
+---------------------------------------------------------------------
+
+. If we now test our application URLs we will no change.  However, if we view the Service Registry dashboard (accessible from the _manage_ link in Apps Manager) you will see that a service named cloud-native-spring has registered:
++
+image::images/registry2.jpg[]
+
+. Next we'll create a simple UI application that will read the service registry to discover the location of our cities REST service and connect.
+
+== Create another Spring Boot Project as a Client UI
+
+. Browse to https://start.spring.io
+
+. Generate a Maven Project with Spring Boot 1.5.8.
+
+. Fill out the *Project metadata* fields as follows:
++
+Group:: +io.pivotal+
+Artifact:: +cloud-native-spring-ui+
+
+. In the dependencies section, add the following:
++
+*Vaadin* 
++
+*Actuator* 
++
+*Feign*
++
+*Rest Repositories*
+
+. Click the _Generate Project_ button. Your browser will download a zip file.
+
+. Copy then unpack the downloaded zip file to *demo05/cloud-native-spring-ui*
++
+
+. Import the project’s pom.xml into your editor/IDE of choice.
+
+. We will need to add a the general entry for Spring Cloud dependency management as we added to our other project.  Open your Maven POM found here: */cloud-native-spring-ui/pom.xml*:
++
+[source, xml]
+---------------------------------------------------------------------
+<dependencyManagement>
+		<dependencies>
+			<dependency>
+				<groupId>io.pivotal.spring.cloud</groupId>
+				<artifactId>spring-cloud-services-dependencies</artifactId>
+				<version>1.4.1.RELEASE</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+			<dependency>
+				<groupId>org.springframework.cloud</groupId>
+				<artifactId>spring-cloud-dependencies</artifactId>
+				<version>Dalston.SR4</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
+---------------------------------------------------------------------
+
+. As before, we need to add _spring-cloud-services-starter-service-registry_ to the classpath.  Add this to your POM:
++
+[source, xml]
+---------------------------------------------------------------------
+<dependency>
+  <groupId>io.pivotal.spring.cloud</groupId>
+	<artifactId>spring-cloud-services-starter-service-registry</artifactId>
+</dependency>
+---------------------------------------------------------------------
++
+. Add the domain object - City
+Create the package `io.pivotal.cloudnativespringui.domain` and in that package create the class `City`. Into that file you can paste the following source code, which represents cities based on postal codes, global coordinates, etc:
++
+[source, java, numbered]
+---------------------------------------------------------------------
+package io.pivotal.cloudnativespringui.domain;
+
+public class City implements Serializable {
+    private static final long serialVersionUID = 1L;
+
+    private long id;
+
+    private String name;
+
+    private String county;
+
+    private String stateCode;
+
+    private String postalCode;
+
+    private String latitude;
+
+    private String longitude;
+
+    public String getName() { return name; }
+
+    public void setName(String name) { this.name = name; }
+
+    public String getPostalCode() { return postalCode; }
+
+    public void setPostalCode(String postalCode) { this.postalCode = postalCode; }
+
+    public long getId() { return id; }
+
+    public void setId(long id) { this.id = id; }
+
+    public String getStateCode() { return stateCode; }
+
+    public void setStateCode(String stateCode) { this.stateCode = stateCode; }
+
+    public String getCounty() { return county; }
+
+    public void setCounty(String county) { this.county = county; }
+
+    public String getLatitude() { return latitude; }
+
+    public void setLatitude(String latitude) { this.latitude = latitude; }
+
+    public String getLongitude() { return longitude; }
+
+    public void setLongitude(String longitude) { this.longitude = longitude; }
+}
+
+---------------------------------------------------------------------
+
+. Since this UI is going to consume REST services its an awesome opportunity to use Feign.  Feign will handle *ALL* the work of invoking our services and marshalling/unmarshalling JSON into domain objects.  We'll add a Feign Client interface into our app.  Take note of how Feign references the downstream service; its only the name of the service it will lookup from Eureka service registry.  Add the following interface declaration to the _CloudNativeSpringUIApplication_:
++
+[source,java,numbered]
+---------------------------------------------------------------------
+    @FeignClient(name = "cloud-native-spring")
+    interface CityClientService {
+
+        @RequestMapping(method = RequestMethod.GET, value = "/cities", consumes = "application/hal+json")
+        Resources<City> getCities();
+    }
+---------------------------------------------------------------------
+. Add a class to access the above created service
++
+[source,java,numbered]
+---------------------------------------------------------------------
+    @Component
+    class CityClient {
+
+        private CityClientService service;
+
+        public CityClient(CityClientService service) {
+            this.service = service;
+        }
+
+        public Resources<City> getCities(){
+            return service.getCities();
+        }
+
+    }
+---------------------------------------------------------------------
++
+We'll also need to add a few annotations to our boot application:
++
+[source,java,numbered]
+---------------------------------------------------------------------
+@SpringBootApplication
+@EnableFeignClients
+@EnableDiscoveryClient
+public class CloudNativeSpringUiApplication {
+---------------------------------------------------------------------
++
+Completed:
++
+[source,java,numbered]
+---------------------------------------------------------------------
+package io.pivotal.cloudnativespringui;
+
+import java.util.Collections;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
+import org.springframework.cloud.netflix.feign.EnableFeignClients;
+import org.springframework.cloud.netflix.feign.FeignClient;
+import org.springframework.hateoas.Resources;
+import org.springframework.stereotype.Component;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+
+import io.pivotal.cloudnativespringui.domain.City;
+
+@SpringBootApplication
+@EnableFeignClients
+@EnableDiscoveryClient
+public class CloudNativeSpringUiApplication {
+
+	public static void main(String[] args) {
+		SpringApplication.run(CloudNativeSpringUiApplication.class, args);
+	}
+
+    @Component
+    class CityClient {
+
+        private CityClientService service;
+
+        public CityClient(CityClientService service) {
+            this.service = service;
+        }
+
+        public Resources<City> getCities(){
+            return service.getCities();
+        }
+
+    }
+
+    @FeignClient(name = "cloud-native-spring")
+    interface CityClientService {
+
+        @RequestMapping(method = RequestMethod.GET, value = "/cities", consumes = "application/hal+json")
+        Resources<City> getCities();
+    }
+}
+
+---------------------------------------------------------------------
+
+. Next we'll create a Vaadin UI for rendering our data.  The point of this workshop isn't to go into detail on creating UIs; for now suffice to say that Vaadin is a great tool for quickly creating User Interfaces.  Our UI will consume our Feign client we just created.  Create the class _io.pivotal.cloudnativespringui.AppUI_ (/cloud-native-spring-ui/src/main/java/io/pivotal/cloudnativespringui/AppUI.java) and into it paste the following code:
++
+[source,java]
+---------------------------------------------------------------------
+package io.pivotal.cloudnativespringui;
+
+import com.vaadin.annotations.Theme;
+
+import com.vaadin.server.VaadinRequest;
+import com.vaadin.spring.annotation.SpringUI;
+import com.vaadin.ui.Grid;
+import com.vaadin.ui.UI;
+import io.pivotal.cloudnativespringui.domain.City;
+import org.springframework.beans.factory.annotation.Autowired;
+
+import java.util.ArrayList;
+import java.util.Collection;
+
+@SpringUI
+@Theme("valo")
+public class AppUI extends UI {
+
+    private final CloudNativeSpringUiApplication.CityClient _client;
+    private final Grid<City> _grid;
+
+    @Autowired
+    public AppUI(CloudNativeSpringUiApplication.CityClient client) {
+        _client = client;
+        _grid = new Grid<>(City.class);
+    }
+
+    @Override
+    protected void init(VaadinRequest request) {
+        setContent(_grid);
+        _grid.setWidth(100, Unit.PERCENTAGE);
+        _grid.setHeight(100, Unit.PERCENTAGE);
+        Collection<City> collection = new ArrayList<>();
+        _client.getCities().forEach(collection::add);
+        _grid.setItems(collection);
+    }
+}
+---------------------------------------------------------------------
+. We'll also want to give our UI App a name so that it can register properly with Eureka and potentially use cloud config in the future.  Add the following configuration to */cloud-native-spring-ui/src/main/resources/application.properties*:
++
+[source, yaml]
+---------------------------------------------------------------------
+spring.application.name=cloud-native-spring-ui
+---------------------------------------------------------------------
+
+== Deploy and test application
+
+. Build the application.  We have to skip the tests otherwise we may fail because of having 2 spring boot apps on the classpath
++
+[source,bash]
+---------------------------------------------------------------------
+$ mvn clean package -DskipTests
+---------------------------------------------------------------------
+
+. Create an application manifest in the root folder /cloud-native-spring-ui
++
+$ touch manifest.yml
+
+. Add application metadata
++
+[source, bash]
+---------------------------------------------------------------------
+---
+applications:
+- name: cloud-native-spring-ui
+  host: cloud-native-spring-ui-${random-word}
+  memory: 768M
+  instances: 1
+  path: ./target/cloud-native-spring-ui-0.0.1-SNAPSHOT.jar
+  buildpack: java_buildpack_offline
+  timeout: 180
+  env:
+      TRUST_CERTS: api.sys.humourmind.com,api.sys.humourmind.com:443
+      JAVA_OPTS: -Djava.security.egd=file:///dev/urandom
+  services:
+  - service-registry
+---------------------------------------------------------------------
+
+. Push application into Cloud Foundry
++
+[source,bash]
+---------------------------------------------------------------------
+$ cf push
+---------------------------------------------------------------------
+
+. Test your application by navigating to the root URL of the application, which will invoke Vaadin UI.  You should now see a table listing the first set of rows returned from the cities microservice:
++
+image::images/ui.jpg[]
+
+. From a commandline stop the cloud-native-spring microservice (the original city service, not the new UI)
++
+[source,bash]
+---------------------------------------------------------------------
+$ cf stop cloud-native-spring
+---------------------------------------------------------------------
+. Refresh the UI app.  What happens?  Now you get a nasty error that is not very user friendly!
+
+. Next we'll learn how to make our UI Application more resilient in the case that our downstream services are unavailable.
