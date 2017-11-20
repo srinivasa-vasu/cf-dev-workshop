@@ -143,10 +143,10 @@ applications:
   memory: 768M
   instances: 1
   path: ./target/cloud-native-spring-0.0.1-SNAPSHOT.jar
-  buildpack: java_buildpack_offline
+  #buildpack: java_buildpack_offline
   env:
     JAVA_OPTS: -Djava.security.egd=file:///dev/urandom
-    TRUST_CERTS: api.sys.humourmind.com,api.sys.humourmind.com:443
+    #TRUST_CERTS: api.sys.humourmind.com,api.sys.humourmind.com:443
 ---------------------------------------------------------------------
 
 . Push application into Cloud Foundry (make sure you are in _cloud-native-spring_ directory)
