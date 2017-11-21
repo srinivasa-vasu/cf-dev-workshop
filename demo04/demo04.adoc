@@ -19,23 +19,23 @@ In this lab we'll utilize Spring Boot and Spring Cloud to configure our applicat
 [source, xml]
 ---------------------------------------------------------------------
 <dependencyManagement>
-		<dependencies>
-			<dependency>
-				<groupId>io.pivotal.spring.cloud</groupId>
-				<artifactId>spring-cloud-services-dependencies</artifactId>
-				<version>1.4.1.RELEASE</version>
-				<type>pom</type>
-				<scope>import</scope>
-			</dependency>
-			<dependency>
-				<groupId>org.springframework.cloud</groupId>
-				<artifactId>spring-cloud-dependencies</artifactId>
-				<version>Dalston.SR4</version>
-				<type>pom</type>
-				<scope>import</scope>
-			</dependency>
-		</dependencies>
-	</dependencyManagement>
+	<dependencies>
+	    <dependency>
+		<groupId>io.pivotal.spring.cloud</groupId>
+		<artifactId>spring-cloud-services-dependencies</artifactId>
+		<version>${spring-cloud-services.version}</version>
+		<type>pom</type>
+		<scope>import</scope>
+	    </dependency>
+	    <dependency>
+		<groupId>org.springframework.cloud</groupId>
+		<artifactId>spring-cloud-dependencies</artifactId>
+		<version>${spring-cloud.version}</version>
+		<type>pom</type>
+		<scope>import</scope>
+	    </dependency>
+	</dependencies>
+</dependencyManagement>
 ---------------------------------------------------------------------
 
 . Update properties section to the following,
