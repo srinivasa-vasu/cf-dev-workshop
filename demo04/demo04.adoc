@@ -38,6 +38,19 @@ In this lab we'll utilize Spring Boot and Spring Cloud to configure our applicat
 	</dependencyManagement>
 ---------------------------------------------------------------------
 
+. Update properties section to the following,
++
+[source, xml]
+---------------------------------------------------------------------
+<properties>
+	<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+	<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+	<java.version>1.8</java.version>
+	<spring-cloud.version>Dalston.SR4</spring-cloud.version>
+	<spring-cloud-services.version>1.4.1.RELEASE</spring-cloud-services.version>
+</properties>
+---------------------------------------------------------------------
+
 . Add an @Value annotation, private field, and associated usage to the class _io.pivotal.cloudnativespring.controller.CloudNativeController_ (/cloud-native-spring/src/main/java/io/pivotal/cloudnativespring/controller/CloudNativeController.java):
 +
 [source, java, numbered]
