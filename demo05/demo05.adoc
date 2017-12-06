@@ -93,6 +93,7 @@ applications:
   - config-server
   - service-registry
 ---------------------------------------------------------------------
+Replace ${random-word} with some unique name (may be your name)
 
 == Deploy and test application
 
@@ -377,11 +378,34 @@ public class AppUI extends UI {
     }
 }
 ---------------------------------------------------------------------
-. We'll also want to give our UI App a name so that it can register properly with Eureka and potentially use cloud config in the future.  Add the following configuration to */cloud-native-spring-ui/src/main/resources/application.properties*:
+. We'll also want to give our UI App a name so that it can register properly with Eureka and potentially use cloud config in the future.
+Rename */cloud-native-spring-ui/src/main/resources/application.properties* to */cloud-native-spring-ui/src/main/resources/application.yml* Add the following configuration to */cloud-native-spring-ui/src/main/resources/application.yml*:
 +
 [source, yaml]
 ---------------------------------------------------------------------
-spring.application.name=cloud-native-spring-ui
+spring:
+  application:
+    name: cloud-native-spring-ui
+---------------------------------------------------------------------
+Complete:
++
+[source, yaml]
+---------------------------------------------------------------------
+spring:
+  application:
+    name: cloud-native-spring-ui
+security:
+  basic:
+    enabled: false
+endpoints:
+  sensitive: false
+
+management:
+  security:
+    enabled: false
+  cloudfoundry:
+    enabled: true
+    skip-ssl-validation: true
 ---------------------------------------------------------------------
 
 == Deploy and test application
@@ -416,6 +440,7 @@ applications:
   services:
   - service-registry
 ---------------------------------------------------------------------
+Replace ${random-word} with some unique name (may be your name)
 
 . Push application into Cloud Foundry
 +
