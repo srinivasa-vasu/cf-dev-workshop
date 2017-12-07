@@ -343,6 +343,7 @@ applications:
     JAVA_OPTS: -Djava.security.egd=file:///dev/urandom
     #TRUST_CERTS: api.sys.humourmind.com,api.sys.humourmind.com:443
 ---------------------------------------------------------------------
+Replace ${random-word} with some unique name (may be your name)
 
 . Push to Cloud Foundry:
 +
@@ -361,7 +362,7 @@ OK
 
 requested state: started
 instances: 1/1
-usage: 512M x 1 instances
+usage: 768M x 1 instances
 urls: cloud-native-spring.cf.mycloud.com
 
      state     since                    cpu    memory         disk

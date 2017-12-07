@@ -148,6 +148,7 @@ applications:
     JAVA_OPTS: -Djava.security.egd=file:///dev/urandom
     #TRUST_CERTS: api.sys.humourmind.com,api.sys.humourmind.com:443
 ---------------------------------------------------------------------
+Replace ${random-word} with may be some unique name
 
 . Push application into Cloud Foundry (make sure you are in _cloud-native-spring_ directory)
 +

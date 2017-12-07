@@ -336,6 +336,7 @@ applications:
     JAVA_OPTS: -Djava.security.egd=file:///dev/urandom
     #TRUST_CERTS: api.sys.humourmind.com,api.sys.humourmind.com:443
 ---------------------------------------------------------------------
+Replace ${random-word} with some unique name (may be your name)
 . Push application into Cloud Foundry
 +
 $ cf push -f manifest.yml
